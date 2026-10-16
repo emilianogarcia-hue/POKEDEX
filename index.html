@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#c8233a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pokédex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Pokédex Nacional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: device-style sticky header (search + two filter rails), then a numbered list grouped by generation; tapping opens a bottom sheet entry. */
+:root {
+  --bg: #f6f3f2;
+  --surface: #ffffff;
+  --ink: #1d1718;
+  --muted: #6e6264;
+  --line: #e6dfdd;
+  --accent: #c8233a;
+  --accent-ink: #ffffff;
+  --accent-soft: #fbe6e8;
+  --form-line: #d9cfcd;
+  --head: #c8233a;
+  --head-ink: #ffffff;
+  --head-field: #ffffff;
+  --head-chip: rgba(255,255,255,.16);
+  --shadow: 0 12px 40px rgba(40, 10, 15, .18);
+  --font-display: "Chakra Petch", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171314; --surface: #221c1d; --ink: #f3ecec; --muted: #a99c9e; --line: #362d2f;
+    --accent: #ff5a6c; --accent-ink: #1a0b0e; --accent-soft: #3a1d22; --form-line: #4a3e40;
+    --head: #7e1322; --head-ink: #fff1f2; --head-field: #2a2122; --head-chip: rgba(255,255,255,.10);
+    --shadow: 0 12px 40px rgba(0,0,0,.5); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #171314; --surface: #221c1d; --ink: #f3ecec; --muted: #a99c9e; --line: #362d2f;
+  --accent: #ff5a6c; --accent-ink: #1a0b0e; --accent-soft: #3a1d22; --form-line: #4a3e40;
+  --head: #7e1322; --head-ink: #fff1f2; --head-field: #2a2122; --head-chip: rgba(255,255,255,.10);
+  --shadow: 0 12px 40px rgba(0,0,0,.5); color-scheme: dark;
+}
+/* type colors: chips carry their own background, readable on either theme */
+.t-normal{--tc:#9a9a7a;--tt:#fff}.t-fire{--tc:#e8662c;--tt:#fff}.t-water{--tc:#3f7fe0;--tt:#fff}.t-grass{--tc:#4fa63a;--tt:#fff}
+.t-electric{--tc:#f2c419;--tt:#2b2200}.t-ice{--tc:#6ccfd6;--tt:#0b2a2c}.t-fighting{--tc:#b8342c;--tt:#fff}.t-poison{--tc:#94409a;--tt:#fff}
+.t-ground{--tc:#d4b062;--tt:#2c2208}.t-flying{--tc:#8d9cf0;--tt:#141a40}.t-psychic{--tc:#ef4f86;--tt:#fff}.t-bug{--tc:#94ad1c;--tt:#fff}
+.t-rock{--tc:#b29b3c;--tt:#fff}.t-ghost{--tc:#6a568f;--tt:#fff}.t-dragon{--tc:#5d3ff0;--tt:#fff}.t-dark{--tc:#5a4840;--tt:#fff}
+.t-steel{--tc:#8b97ab;--tt:#fff}.t-fairy{--tc:#e07fc6;--tt:#2c0b24}.t-stellar{--tc:#40b5a5;--tt:#fff}
+
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--ink); }
+body { margin: 0; font-family: var(--font-body); font-size: 15px; line-height: 1.45; -webkit-tap-highlight-color: transparent; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--head); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* header */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--head); color: var(--head-ink); box-shadow: 0 2px 10px rgba(0,0,0,.15); }
+.top-inner { max-width: 1100px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 10px; display: grid; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.lens { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #bfe8ff, #2b8fd6 55%, #0d4f86); border: 3px solid #fff; flex: none; box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+.lens-img { width: 28px; height: 28px; border-radius: 7px; flex: none; }
+.brand h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; letter-spacing: .02em; flex: 1; min-width: 0; text-wrap: balance; }
+.progress { font-family: var(--font-display); font-size: .82rem; letter-spacing: .04em; background: var(--head-chip); padding: 4px 10px; border-radius: 999px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.searchrow { display: flex; gap: 8px; }
+.search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; background: var(--head-field); color: var(--ink); border-radius: 10px; padding: 0 12px; height: 42px; }
+.search svg { flex: none; color: var(--muted); }
+.search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; height: 100%; }
+.search input::placeholder { color: var(--muted); }
+#typeSel { height: 42px; border-radius: 10px; border: 0; background: var(--head-field); color: var(--ink); font: inherit; padding: 0 8px; max-width: 38%; }
+.rail { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; }
+.rail::-webkit-scrollbar { display: none; }
+.rail-label { font-family: var(--font-display); font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; opacity: .75; align-self: center; flex: none; padding-right: 2px; }
+.chip { flex: none; border: 1px solid rgba(255,255,255,.35); background: transparent; color: var(--head-ink); padding: 6px 12px; border-radius: 999px; font-size: .86rem; cursor: pointer; white-space: nowrap; }
+.chip b { font-family: var(--font-display); font-weight: 600; }
+.chip[aria-pressed="true"] { background: var(--head-ink); color: var(--head); border-color: var(--head-ink); font-weight: 700; }
+:root[data-theme="dark"] .chip[aria-pressed="true"] { color: #7e1322; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .chip[aria-pressed="true"] { color: #7e1322; } }
+
+/* main */
+main { max-width: 1100px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px 48px; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 10px; }
+.count { font-family: var(--font-display); font-weight: 600; font-size: .95rem; font-variant-numeric: tabular-nums; flex: 1; min-width: 0; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; font-size: .88rem; color: var(--muted); cursor: pointer; user-select: none; }
+.toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+.note { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; font-size: .9rem; margin-bottom: 12px; max-width: 70ch; }
+.note strong { font-family: var(--font-display); }
+.subchips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.subchip { border: 1px solid var(--line); background: var(--surface); padding: 5px 12px; border-radius: 999px; font-size: .85rem; cursor: pointer; }
+.subchip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+
+.gen-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 22px 0 8px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
+.gen-head:first-child { margin-top: 4px; }
+.gen-head h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; letter-spacing: .02em; }
+.gen-head span { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
+
+.list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0 24px; }
+.row { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); cursor: pointer; min-width: 0; content-visibility: auto; contain-intrinsic-size: auto 69px; }
+.row:hover .name { color: var(--accent); }
+.row.form { grid-template-columns: 18px 46px 1fr auto; padding-left: 10px; }
+.row.form .elbow { width: 14px; height: 22px; border-left: 2px solid var(--form-line); border-bottom: 2px solid var(--form-line); border-bottom-left-radius: 6px; align-self: start; margin-top: 6px; }
+.spr { width: 56px; height: 56px; display: grid; place-items: center; }
+.row.form .spr { width: 46px; height: 46px; }
+.spr img { max-width: 100%; max-height: 100%; image-rendering: pixelated; }
+.spr .ph { width: 70%; height: 70%; border-radius: 50%; background: var(--line); }
+.meta { min-width: 0; display: grid; gap: 3px; }
+.line1 { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.num { font-family: var(--font-display); font-weight: 600; font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+.name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.row.form .name { font-weight: 400; }
+.types { display: flex; gap: 4px; flex-wrap: wrap; }
+.type { background: var(--tc); color: var(--tt); font-size: .7rem; font-weight: 700; padding: 1px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: .04em; }
+.tag { font-size: .68rem; color: var(--muted); border: 1px solid var(--line); padding: 0 6px; border-radius: 4px; }
+.catch { width: 34px; height: 34px; border-radius: 50%; border: 0; background: transparent; cursor: pointer; display: grid; place-items: center; padding: 0; }
+.mark { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--muted); opacity: .5; display: grid; place-items: center; }
+.mark svg { width: 13px; height: 13px; opacity: 0; }
+.catch[aria-pressed="true"] .mark { opacity: 1; background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.catch[aria-pressed="true"] .mark svg { opacity: 1; }
+.empty { padding: 40px 0; text-align: center; color: var(--muted); }
+.loading { padding: 60px 0; text-align: center; color: var(--muted); font-family: var(--font-display); }
+
+/* sheet */
+.scrim { position: fixed; inset: 0; background: rgba(15,5,8,.45); z-index: 40; }
+.sheet { position: fixed; z-index: 41; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 620px; max-height: 88vh; overflow-y: auto; background: var(--surface); border-radius: 18px 18px 0 0; box-shadow: var(--shadow); padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); padding-top: 10px; padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); animation: up .22s ease-out; }
+@keyframes up { from { transform: translateY(30px); opacity: .6; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
+.grab { width: 40px; height: 4px; border-radius: 4px; background: var(--line); margin: 0 auto 8px; }
+.sheet-top { display: flex; justify-content: space-between; align-items: center; }
+.close { border: 0; background: var(--bg); width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; }
+.hero { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: center; margin: 4px 0 14px; }
+.hero .art { width: 120px; height: 120px; display: grid; place-items: center; background: var(--bg); border-radius: 16px; }
+.hero .art img { max-width: 86%; max-height: 86%; image-rendering: pixelated; }
+.hero .num { font-size: .95rem; }
+.hero h3 { margin: 2px 0 2px; font-family: var(--font-display); font-size: 1.5rem; line-height: 1.15; text-wrap: balance; }
+.genus { color: var(--muted); font-size: .9rem; margin-bottom: 6px; }
+.flavor { margin: 0 0 14px; max-width: 65ch; }
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.fact { background: var(--bg); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+.fact small { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.fact b { font-family: var(--font-display); font-size: 1rem; font-variant-numeric: tabular-nums; }
+.sec { font-family: var(--font-display); font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 16px 0 8px; }
+.stats { display: grid; grid-template-columns: 76px 34px 1fr; gap: 5px 8px; align-items: center; font-size: .85rem; }
+.stats .v { font-family: var(--font-display); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.stats .track { height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+.stats .fill { height: 100%; border-radius: 4px; background: var(--accent); }
+.stats .total { font-weight: 700; }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.badge { background: var(--accent-soft); color: var(--ink); padding: 3px 10px; border-radius: 999px; font-size: .82rem; }
+.mini { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mini button { display: grid; justify-items: center; gap: 2px; background: var(--bg); border: 1px solid transparent; border-radius: 10px; padding: 6px 8px; cursor: pointer; min-width: 78px; font-size: .78rem; }
+.mini button[aria-current="true"] { border-color: var(--accent); }
+.mini img { width: 44px; height: 44px; object-fit: contain; image-rendering: pixelated; }
+.mini .arrow { color: var(--muted); }
+.catch-big { margin-top: 18px; width: 100%; height: 46px; border-radius: 12px; border: 2px solid var(--accent); background: transparent; color: var(--accent); font-family: var(--font-display); font-weight: 700; font-size: 1rem; cursor: pointer; }
+.catch-big[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+@media (max-width: 420px) { .hero { grid-template-columns: 96px 1fr; } .hero .art { width: 96px; height: 96px; } .list { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <img class="lens-img" src="icon-192.png" alt="" width="28" height="28">
+      <h1>Pokédex Nacional</h1>
+      <span class="progress" id="progress" title="Pokémon marcados como capturados">0 / 1025</span>
+    </div>
+    <div class="searchrow">
+      <label class="search" for="q">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Nombre o número" autocomplete="off" enterkeyhint="search">
+      </label>
+      <select id="typeSel" aria-label="Filtrar por tipo"><option value="">Tipo</option></select>
+    </div>
+    <div class="rail" id="genRail" role="group" aria-label="Generación"></div>
+    <div class="rail" id="catRail" role="group" aria-label="Categoría"></div>
+  </div>
+</header>
+
+<main>
+  <div class="bar">
+    <div class="count" id="count">Cargando…</div>
+    <label class="toggle" for="showForms"><input type="checkbox" id="showForms"> Megas, Gigamax y otras formas</label>
+  </div>
+  <div id="note"></div>
+  <div id="sub"></div>
+  <div id="out"><div class="loading">Cargando la Pokédex…</div></div>
+</main>
+
+<div id="sheetWrap" hidden>
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
+</div>
+
+<script>
+(() => {
+const GENS = [
+  [1,'I','Kanto'],[2,'II','Johto'],[3,'III','Hoenn'],[4,'IV','Sinnoh'],[5,'V','Teselia'],
+  [6,'VI','Kalos'],[7,'VII','Alola'],[8,'VIII','Galar'],[9,'IX','Paldea']];
+const CATS = [
+  ['legendario','Legendarios','Pokémon legendarios: muy poderosos, ligados a la historia de su región. Suelen ser únicos en cada juego.'],
+  ['singular','Singulares','También llamados míticos. Antes solo se obtenían en eventos especiales.'],
+  ['ultraente','Ultraentes','Criaturas que llegan de otra dimensión a través de los Ultraumbrales. Aparecen en Alola.'],
+  ['paradoja','Paradoja','Versiones de Pokémon del pasado remoto o del futuro lejano. Aparecen en Paldea.'],
+  ['pseudo','Pseudolegendarios','Líneas de tres etapas cuya forma final suma 600 de estadísticas base. Aquí aparece la línea completa.'],
+  ['inicial','Iniciales','Los tres Pokémon a elegir al empezar la aventura de cada región, con sus evoluciones.'],
+  ['bebe','Bebés','Preevoluciones que solo se obtienen al eclosionar un huevo.'],
+  ['fosil','Fósiles','Pokémon que se reviven a partir de fósiles.'],
+  ['regional','Formas regionales','Variantes de un Pokémon adaptadas a otra región. Cambian de aspecto y a veces de tipo.'],
+  ['mega','Megaevoluciones','Transformación temporal en combate. Incluye las Regresiones Primigenias de Kyogre y Groudon.'],
+  ['gmax','Gigamax','Forma gigante con aspecto propio, disponible en Galar.'],
+  ['mine','Mis capturados','Los Pokémon que marcaste con la Poké Ball. Se guardan en este navegador.']];
+const REG = { alola:'Alola', galar:'Galar', hisui:'Hisui', paldea:'Paldea' };
+const STAT_L = ['PS','Ataque','Defensa','At. Esp.','Def. Esp.','Velocidad'];
+const FORM_KINDS = new Set(['mega','gmax','otra']);
+
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(4, '0');
+const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let DATA = null, TYPES = {}, SPR = {}, BYSPEC = new Map(), BYID = new Map();
+const st = { gen: 0, cat: '', region: '', type: '', q: '', forms: false };
+
+function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
+const caught = new Set(store('pkdx-caught') || []);
+function saveCaught() { store('pkdx-caught', [...caught]); }
+Object.assign(st, store('pkdx-filters') || {});
+st.q = '';
+
+// rails
+function chip(label, pressed, onClick) {
+  const b = document.createElement('button'); b.className = 'chip'; b.type = 'button';
+  b.innerHTML = label; b.setAttribute('aria-pressed', pressed); b.onclick = onClick; return b;
+}
+function buildRails() {
+  const g = $('#genRail'); g.innerHTML = '<span class="rail-label">Gen</span>';
+  g.append(chip('Todas', st.gen === 0, () => { st.gen = 0; update(); }));
+  GENS.forEach(([n, r, reg]) => g.append(chip(`<b>${r}</b> ${reg}`, st.gen === n, () => { st.gen = st.gen === n ? 0 : n; update(); })));
+  const c = $('#catRail'); c.innerHTML = '<span class="rail-label">Grupo</span>';
+  c.append(chip('Todos', !st.cat, () => { st.cat = ''; st.region = ''; update(); }));
+  CATS.forEach(([k, l]) => c.append(chip(l, st.cat === k, () => { st.cat = st.cat === k ? '' : k; st.region = ''; update(); })));
+}
+
+function img(e, cls = '') {
+  const src = SPR[e.id];
+  return src ? `<img src="${src}" alt="" loading="lazy" decoding="async" class="${cls}">` : '<span class="ph"></span>';
+}
+function typeChips(t) { return t.map(x => `<span class="type t-${x}">${esc(TYPES[x] || x)}</span>`).join(''); }
+
+function matches(e, base) {
+  if (st.gen && base.g !== st.gen) return false;
+  if (st.type && !e.t.includes(st.type)) return false;
+  if (st.q) {
+    const q = norm(st.q).replace(/^#|^n[º°o]?\s*/, '');
+    if (/^\d+$/.test(q)) { if (e.n !== +q) return false; }
+    else if (!norm(e.name).includes(q) && !norm(base.name).includes(q)) return false;
+  }
+  return true;
+}
+
+function visibleList() {
+  const out = [];
+  for (const [n, group] of BYSPEC) {
+    const base = group[0];
+    const forms = group.slice(1);
+    let showBase, showForms;
+    const c = st.cat;
+    if (c === 'regional') {
+      const regs = forms.filter(f => f.k === 'regional' && (!st.region || f.r === st.region));
+      if (!regs.length) continue;
+      showBase = true; showForms = regs;
+    } else if (c === 'mega' || c === 'gmax') {
+      const fs = forms.filter(f => f.k === c);
+      if (!fs.length) continue;
+      showBase = true; showForms = fs;
+    } else {
+      if (c === 'mine') { if (!caught.has(base.id)) continue; }
+      else if (c && !base.c.includes(c)) continue;
+      showBase = true;
+      showForms = forms.filter(f => f.k === 'regional' || (st.forms && FORM_KINDS.has(f.k)));
+    }
+    const items = [];
+    if (showBase && matches(base, base)) items.push(base);
+    for (const f of showForms) if (matches(f, base)) items.push(f);
+    if (items.length && items[0] !== base && st.cat !== 'regional' && !st.q && !st.type) items.unshift(base);
+    if (items.length) out.push(...items);
+  }
+  return out;
+}
+
+function rowHTML(e) {
+  const isForm = e.k !== 'base';
+  const tag = e.k === 'regional' ? `<span class="tag">${REG[e.r]}</span>` : e.k === 'mega' ? '<span class="tag">Mega</span>' : e.k === 'gmax' ? '<span class="tag">Gigamax</span>' : e.k === 'otra' ? '<span class="tag">Forma</span>' : '';
+  const mark = isForm ? '<span></span>' : `<button class="catch" type="button" data-catch="${e.id}" aria-pressed="${caught.has(e.id)}" aria-label="Marcar ${esc(e.name)} como capturado"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span></button>`;
+  return `<div class="row${isForm ? ' form' : ''}" data-id="${e.id}" tabindex="0" role="button" aria-label="${esc(e.name)}, número ${e.n}">
+    ${isForm ? '<span class="elbow" aria-hidden="true"></span>' : ''}
+    <div class="spr">${img(e)}</div>
+    <div class="meta"><div class="line1"><span class="num">Nº ${pad(e.n)}</span><span class="name">${esc(e.name)}</span></div>
+    <div class="types">${typeChips(e.t)}${tag}</div></div>${mark}</div>`;
+}
+
+function render() {
+  const list = visibleList();
+  const nBase = list.filter(e => e.k === 'base').length, nForm = list.length - nBase;
+  $('#count').textContent = list.length ? `${nBase} Pokémon${nForm ? ` · ${nForm} forma${nForm > 1 ? 's' : ''}` : ''}` : 'Sin resultados';
+  const out = $('#out');
+  if (!list.length) {
+    out.innerHTML = `<div class="empty">${st.cat === 'mine' ? 'Aún no marcas ningún Pokémon. Toca el círculo a la derecha de cualquier fila para marcarlo como capturado.' : 'Ningún Pokémon coincide con estos filtros.'}</div>`;
+    return;
+  }
+  let html = '', curGen = 0;
+  for (const e of list) {
+    const g = BYID.get(BYSPEC.get(e.n)[0].id).g;
+    if (g !== curGen) {
+      if (curGen) html += '</div>';
+      curGen = g; const [, r, reg] = GENS[g - 1];
+      const range = DATA.ranges[g];
+      html += `<div class="gen-head"><h2>Generación ${r} · ${reg}</h2><span>Nº ${pad(range[0])}–${pad(range[1])}</span></div><div class="list">`;
+    }
+    html += rowHTML(e);
+  }
+  out.innerHTML = html + '</div>';
+}
+
+function renderNote() {
+  const c = CATS.find(x => x[0] === st.cat);
+  $('#note').innerHTML = c ? `<div class="note"><strong>${c[1]}.</strong> ${c[2]}</div>` : '';
+  const sub = $('#sub'); sub.innerHTML = '';
+  if (st.cat === 'regional') {
+    const wrap = document.createElement('div'); wrap.className = 'subchips';
+    [['', 'Todas'], ...Object.entries(REG)].forEach(([k, l]) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'subchip'; b.textContent = l;
+      b.setAttribute('aria-pressed', st.region === k); b.onclick = () => { st.region = k; update(); };
+      wrap.append(b);
+    });
+    sub.append(wrap);
+  }
+  const showToggle = !['regional', 'mega', 'gmax'].includes(st.cat);
+  $('.toggle').hidden = !showToggle;
+}
+
+function updateProgress() { $('#progress').textContent = `${caught.size} / 1025`; }
+
+function update() {
+  store('pkdx-filters', { gen: st.gen, cat: st.cat, region: st.region, type: st.type, forms: st.forms });
+  buildRails(); renderNote(); render();
+}
+
+// detail sheet
+function openSheet(id) {
+  const e = BYID.get(id); if (!e) return;
+  const group = BYSPEC.get(e.n); const base = group[0];
+  const total = e.st.reduce((a, b) => a + b, 0);
+  const chain = DATA.list.filter(x => x.k === 'base' && x.ch === base.ch);
+  const depth = x => { let d = 0, cur = x; while (cur.ef && d < 5) { cur = BYSPEC.get(cur.ef)?.[0]; if (!cur) break; d++; } return d; };
+  const stages = []; chain.forEach(x => { const d = depth(x); (stages[d] = stages[d] || []).push(x); });
+  const mini = (x) => `<button type="button" data-go="${x.id}" aria-current="${x.id === e.id}">${SPR[x.id] ? `<img src="${SPR[x.id]}" alt="">` : ''}<span>${esc(x.name)}</span></button>`;
+  const cats = base.c.map(k => CATS.find(c => c[0] === k)?.[1]).filter(Boolean);
+  if (e.k === 'regional') cats.push('Forma de ' + REG[e.r]);
+  if (e.k === 'mega') cats.push('Megaevolución');
+  if (e.k === 'gmax') cats.push('Gigamax');
+  const sheet = $('#sheet');
+  sheet.innerHTML = `
+    <div class="grab" aria-hidden="true"></div>
+    <div class="sheet-top"><span class="num">Generación ${GENS[base.g - 1][1]} · ${GENS[base.g - 1][2]}</span><button class="close" id="closeSheet" type="button" aria-label="Cerrar">✕</button></div>
+    <div class="hero"><div class="art">${img(e)}</div>
+      <div><div class="num">Nº ${pad(e.n)}</div><h3 id="sheetTitle">${esc(e.name)}</h3><div class="genus">${esc(base.gen)}</div><div class="types">${typeChips(e.t)}</div></div></div>
+    ${base.fl ? `<p class="flavor">${esc(base.fl)}</p>` : ''}
+    <div class="facts">
+      <div class="fact"><small>Altura</small><b>${(e.h / 10).toLocaleString('es-MX')} m</b></div>
+      <div class="fact"><small>Peso</small><b>${(e.w / 10).toLocaleString('es-MX')} kg</b></div>
+      <div class="fact"><small>Total stats</small><b>${total}</b></div>
+    </div>
+    ${cats.length ? `<div class="badges">${cats.map(c => `<span class="badge">${esc(c)}</span>`).join('')}</div>` : ''}
+    <div class="sec">Estadísticas base</div>
+    <div class="stats">${e.st.map((v, i) => `<span>${STAT_L[i]}</span><span class="v">${v}</span><span class="track"><span class="fill" style="width:${Math.min(100, v / 2.55)}%"></span></span>`).join('')}</div>
+    ${chain.length > 1 ? `<div class="sec">Línea evolutiva</div><div class="mini">${stages.filter(Boolean).map(s => s.map(mini).join('')).join('<span class="arrow" aria-hidden="true">›</span>')}</div>` : ''}
+    ${group.length > 1 ? `<div class="sec">Formas</div><div class="mini">${group.map(mini).join('')}</div>` : ''}
+    <button class="catch-big" type="button" id="catchBig" aria-pressed="${caught.has(base.id)}">${caught.has(base.id) ? '✓ Capturado' : 'Marcar como capturado'}</button>`;
+  $('#sheetWrap').hidden = false;
+  document.documentElement.style.overflow = 'hidden';
+  sheet.scrollTop = 0;
+  $('#closeSheet').focus({ preventScroll: true });
+  $('#closeSheet').onclick = closeSheet;
+  $('#catchBig').onclick = () => { toggleCatch(base.id); openSheet(id); };
+  sheet.querySelectorAll('[data-go]').forEach(b => b.onclick = () => openSheet(+b.dataset.go));
+}
+function closeSheet() { $('#sheetWrap').hidden = true; document.documentElement.style.overflow = ''; }
+function toggleCatch(id) {
+  caught.has(id) ? caught.delete(id) : caught.add(id);
+  saveCaught(); updateProgress();
+  document.querySelectorAll(`[data-catch="${id}"]`).forEach(b => b.setAttribute('aria-pressed', caught.has(id)));
+  if (st.cat === 'mine') render();
+}
+
+$('#scrim').onclick = closeSheet;
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !$('#sheetWrap').hidden) closeSheet(); });
+$('#out').addEventListener('click', ev => {
+  const c = ev.target.closest('[data-catch]'); if (c) { ev.stopPropagation(); toggleCatch(+c.dataset.catch); return; }
+  const r = ev.target.closest('.row'); if (r) openSheet(+r.dataset.id);
+});
+$('#out').addEventListener('keydown', ev => {
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.classList.contains('row')) { ev.preventDefault(); openSheet(+ev.target.dataset.id); }
+});
+let qt; $('#q').addEventListener('input', ev => { clearTimeout(qt); qt = setTimeout(() => { st.q = ev.target.value.trim(); render(); }, 120); });
+$('#typeSel').addEventListener('change', ev => { st.type = ev.target.value; update(); });
+$('#showForms').addEventListener('change', ev => { st.forms = ev.target.checked; update(); });
+
+async function loadSprites() {
+  const gens = [1,2,3,4,5,6,7,8,9];
+  const first = st.gen ? [st.gen, ...gens.filter(g => g !== st.gen)] : gens;
+  for (const g of first) {
+    try { const r = await fetch(`sprites-${g}.json`); Object.assign(SPR, await r.json()); } catch (e) {}
+    // swap placeholders for this generation without re-rendering the whole list
+    document.querySelectorAll('.row').forEach(row => {
+      const ph = row.querySelector('.spr .ph'); const id = +row.dataset.id;
+      if (ph && SPR[id]) ph.outerHTML = `<img src="${SPR[id]}" alt="" loading="lazy" decoding="async">`;
+    });
+  }
+}
+
+async function boot() {
+  try {
+    const r = await fetch('pokedex.json'); DATA = await r.json();
+  } catch (e) {
+    $('#out').innerHTML = '<div class="empty">No se pudieron cargar los datos. Revisa tu conexión y vuelve a abrir la página.</div>';
+    $('#count').textContent = ''; return;
+  }
+  TYPES = DATA.types;
+  DATA.ranges = {};
+  for (const e of DATA.list) {
+    BYID.set(e.id, e);
+    if (!BYSPEC.has(e.n)) BYSPEC.set(e.n, []);
+    BYSPEC.get(e.n).push(e);
+    if (e.k === 'base') { const R = DATA.ranges[e.g] = DATA.ranges[e.g] || [e.n, e.n]; R[0] = Math.min(R[0], e.n); R[1] = Math.max(R[1], e.n); }
+  }
+  const order = ['normal','fire','water','grass','electric','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+  const sel = $('#typeSel');
+  order.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = TYPES[t]; sel.append(o); });
+  sel.value = st.type || '';
+  $('#showForms').checked = !!st.forms;
+  updateProgress(); update(); loadSprites();
+}
+boot();
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+})();
+</script>
+
+</body>
+</html>
